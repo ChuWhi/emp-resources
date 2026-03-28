@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMP Resource Web — Electronic Music Practice Teaching Resources</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8f8f6; color: #1a1a1a; }
+  @media (prefers-color-scheme: dark) { body { background: #1a1a1a; color: #e0e0e0; } }
+  .page { max-width: 960px; margin: 0 auto; padding: 24px 20px; }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 14px; color: #888; margin-bottom: 16px; line-height: 1.5; }
+  #graph-container { width: 100%; height: 560px; border: 1px solid rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; position: relative; background: #fff; }
+  @media (prefers-color-scheme: dark) { #graph-container { background: #222; border-color: rgba(255,255,255,0.1); } }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: 12px; color: #888; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .tooltip { position: absolute; padding: 10px 14px; background: #fff; border: 1px solid rgba(0,0,0,0.12); border-radius: 8px; font-size: 13px; color: #1a1a1a; pointer-events: none; opacity: 0; transition: opacity 0.15s; max-width: 260px; line-height: 1.5; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  @media (prefers-color-scheme: dark) { .tooltip { background: #2a2a2a; border-color: rgba(255,255,255,0.15); color: #e0e0e0; } }
+  .tooltip .tt-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .tooltip .tt-cat { font-size: 11px; color: #aaa; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tooltip .tt-desc { font-size: 12px; color: #666; }
+  @media (prefers-color-scheme: dark) { .tooltip .tt-desc { color: #aaa; } }
+  .tooltip .tt-url { font-size: 11px; color: #378ADD; margin-top: 6px; word-break: break-all; }
+  .instructions { font-size: 12px; color: #aaa; margin-top: 8px; text-align: center; }
+  .credit { font-size: 11px; color: #bbb; margin-top: 16px; text-align: center; }
+  .credit a { color: #378ADD; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>EMP Resource Web</h1>
+  <p class="subtitle">Interactive map of online resources for teaching electronic music practice (EMP). Part of the THEME research project.</p>
+  <div id="graph-container">
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+  <div class="legend" id="legend"></div>
+  <div class="instructions">Drag nodes to rearrange. Click a resource to visit it. Hover for details.</div>
+  <p class="credit">THEME — Teaching Hybrid Electronic Music Ensembles | <a href="https://www.zhdk.ch" target="_blank" rel="noopener">ZHdK / ICST</a></p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+
+const categories = {
+  'Sound synthesis': { color: '#7F77DD', light: '#EEEDFE', darkFill: '#7F77DD33' },
+  'Music fundamentals': { color: '#1D9E75', light: '#E1F5EE', darkFill: '#1D9E7533' },
+  'DAW / Production': { color: '#378ADD', light: '#E6F1FB', darkFill: '#378ADD33' },
+  'Creative play': { color: '#D85A30', light: '#FAECE7', darkFill: '#D85A3033' },
+  'Coding + sound': { color: '#D4537E', light: '#FBEAF0', darkFill: '#D4537E33' },
+  'Classroom tools': { color: '#BA7517', light: '#FAEEDA', darkFill: '#BA751733' },
+  'Community / Culture': { color: '#639922', light: '#EAF3DE', darkFill: '#63992233' },
+};
+
+const nodes = [
+  { id: 'learning-synths', label: 'Ableton\nLearning Synths', cat: 'Sound synthesis', url: 'https://learningsynths.ableton.com', desc: 'Interactive browser-based introduction to synthesis concepts: oscillators, filters, envelopes, LFOs.', r: 32 },
+  { id: 'learning-music', label: 'Ableton\nLearning Music', cat: 'Music fundamentals', url: 'https://learningmusic.ableton.com', desc: 'Interactive lessons on beats, melody, basslines, chords, and song structure in the browser.', r: 32 },
+  { id: 'musikkraken', label: 'MusikKraken', cat: 'Classroom tools', url: '', desc: 'Collaborative classroom platform for creative electronic music activities with young learners.', r: 28 },
+  { id: 'chrome-music-lab', label: 'Chrome\nMusic Lab', cat: 'Creative play', url: 'https://musiclab.chromeexperiments.com', desc: 'Google experiments for exploring music concepts: rhythm, melody, sound waves, spectrogram, kandinsky.', r: 28 },
+  { id: 'sonic-pi', label: 'Sonic Pi', cat: 'Coding + sound', url: 'https://sonic-pi.net', desc: 'Live coding music environment. Code-based instrument for education and performance.', r: 26 },
+  { id: 'soundtrap', label: 'Soundtrap\nby Spotify', cat: 'DAW / Production', url: 'https://www.soundtrap.com', desc: 'Browser-based DAW with collaborative features. Education tier for classroom use.', r: 26 },
+  { id: 'bandlab', label: 'BandLab', cat: 'DAW / Production', url: 'https://www.bandlab.com', desc: 'Free browser DAW with social features. Mix editor, MIDI, loops, and collaborative projects.', r: 24 },
+  { id: 'incredibox', label: 'Incredibox', cat: 'Creative play', url: 'https://www.incredibox.com', desc: 'Drag-and-drop beatboxing game. Intuitive entry point for layered rhythm and arrangement.', r: 24 },
+  { id: 'groove-pizza', label: 'Groove Pizza\n(NYU MusEDLab)', cat: 'Music fundamentals', url: 'https://apps.musedlab.org/groovepizza', desc: 'Circular step sequencer exploring rhythm, geometry, and mathematical patterns in beats.', r: 22 },
+  { id: 'beepbox', label: 'BeepBox', cat: 'Creative play', url: 'https://www.beepbox.co', desc: 'Browser-based chiptune music sketch tool. Shareable URLs. Low threshold, high ceiling.', r: 22 },
+  { id: 'patatap', label: 'Patatap', cat: 'Creative play', url: 'https://patatap.com', desc: 'Keyboard-triggered audiovisual performance tool. Each key plays a sound with visual animation.', r: 18 },
+  { id: 'audacity', label: 'Audacity', cat: 'DAW / Production', url: 'https://www.audacityteam.org', desc: 'Free open-source audio editor. Recording, editing, effects processing. Desktop application.', r: 22 },
+  { id: 'lmms', label: 'LMMS', cat: 'DAW / Production', url: 'https://lmms.io', desc: 'Free open-source DAW with synthesizers, beat editor, and piano roll. Cross-platform desktop.', r: 20 },
+  { id: 'scratch-music', label: 'Scratch\n(Music Blocks)', cat: 'Coding + sound', url: 'https://scratch.mit.edu', desc: 'Block-based programming with music extensions. Create interactive sound projects visually.', r: 22 },
+  { id: 'strudel', label: 'Strudel', cat: 'Coding + sound', url: 'https://strudel.cc', desc: 'Browser-based live coding environment for musical patterns. TidalCycles in JavaScript.', r: 20 },
+  { id: 'tone-js', label: 'Tone.js\nPlayground', cat: 'Coding + sound', url: 'https://tonejs.github.io', desc: 'Web Audio framework for creating interactive music in the browser. Synthesis and sequencing API.', r: 18 },
+  { id: 'sampulator', label: 'Sampulator', cat: 'Creative play', url: 'https://sampulator.com', desc: 'Keyboard-based sample pad in the browser. Play beats with the computer keyboard.', r: 16 },
+  { id: 'webpd', label: 'WebPd', cat: 'Coding + sound', url: '', desc: 'Run Pure Data patches in the browser. Bridge between visual patching and web audio.', r: 16 },
+  { id: 'synthesia', label: 'Synthesia', cat: 'Music fundamentals', url: 'https://www.synthesiagame.com', desc: 'Piano learning software with falling-note visualization. Gamified approach to keyboard skills.', r: 18 },
+  { id: 'learningmusic-cc', label: 'Creative Commons\nMusic Resources', cat: 'Community / Culture', url: 'https://freemusicarchive.org', desc: 'Free Music Archive and CC-licensed sound libraries for classroom and remix projects.', r: 18 },
+  { id: 'xlr8r', label: 'XLR8R / RA', cat: 'Community / Culture', url: 'https://xlr8r.com', desc: 'Electronic music culture, history, and community context. Contextualises practice within genre traditions.', r: 16 },
+];
+
+const links = [
+  { source: 'learning-synths', target: 'learning-music', strength: 0.9 },
+  { source: 'learning-synths', target: 'sonic-pi', strength: 0.5 },
+  { source: 'learning-synths', target: 'tone-js', strength: 0.4 },
+  { source: 'learning-synths', target: 'strudel', strength: 0.4 },
+  { source: 'learning-music', target: 'groove-pizza', strength: 0.7 },
+  { source: 'learning-music', target: 'chrome-music-lab', strength: 0.7 },
+  { source: 'learning-music', target: 'soundtrap', strength: 0.6 },
+  { source: 'learning-music', target: 'incredibox', strength: 0.5 },
+  { source: 'learning-music', target: 'synthesia', strength: 0.5 },
+  { source: 'musikkraken', target: 'chrome-music-lab', strength: 0.6 },
+  { source: 'musikkraken', target: 'incredibox', strength: 0.5 },
+  { source: 'musikkraken', target: 'learning-music', strength: 0.5 },
+  { source: 'musikkraken', target: 'groove-pizza', strength: 0.4 },
+  { source: 'chrome-music-lab', target: 'incredibox', strength: 0.6 },
+  { source: 'chrome-music-lab', target: 'patatap', strength: 0.5 },
+  { source: 'chrome-music-lab', target: 'beepbox', strength: 0.5 },
+  { source: 'sonic-pi', target: 'scratch-music', strength: 0.7 },
+  { source: 'sonic-pi', target: 'strudel', strength: 0.8 },
+  { source: 'sonic-pi', target: 'tone-js', strength: 0.5 },
+  { source: 'sonic-pi', target: 'webpd', strength: 0.4 },
+  { source: 'soundtrap', target: 'bandlab', strength: 0.8 },
+  { source: 'soundtrap', target: 'audacity', strength: 0.5 },
+  { source: 'soundtrap', target: 'lmms', strength: 0.5 },
+  { source: 'bandlab', target: 'audacity', strength: 0.5 },
+  { source: 'bandlab', target: 'lmms', strength: 0.6 },
+  { source: 'bandlab', target: 'learningmusic-cc', strength: 0.4 },
+  { source: 'beepbox', target: 'incredibox', strength: 0.5 },
+  { source: 'beepbox', target: 'sampulator', strength: 0.5 },
+  { source: 'patatap', target: 'sampulator', strength: 0.6 },
+  { source: 'scratch-music', target: 'chrome-music-lab', strength: 0.4 },
+  { source: 'strudel', target: 'webpd', strength: 0.5 },
+  { source: 'strudel', target: 'tone-js', strength: 0.6 },
+  { source: 'groove-pizza', target: 'beepbox', strength: 0.4 },
+  { source: 'learningmusic-cc', target: 'xlr8r', strength: 0.6 },
+  { source: 'xlr8r', target: 'learning-synths', strength: 0.3 },
+  { source: 'audacity', target: 'lmms', strength: 0.6 },
+  { source: 'learningmusic-cc', target: 'soundtrap', strength: 0.3 },
+];
+
+const container = document.getElementById('graph-container');
+const width = container.clientWidth;
+const height = container.clientHeight;
+const tooltip = document.getElementById('tooltip');
+
+const legendEl = document.getElementById('legend');
+Object.entries(categories).forEach(([name, {color}]) => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.innerHTML = '<div class="legend-dot" style="background:'+color+'"></div>'+name;
+  legendEl.appendChild(item);
+});
+
+const svg = d3.select('#graph-container').append('svg').attr('width', width).attr('height', height);
+
+const sim = d3.forceSimulation(nodes)
+  .force('link', d3.forceLink(links).id(d => d.id).distance(d => 120 - d.strength * 40).strength(d => d.strength * 0.3))
+  .force('charge', d3.forceManyBody().strength(-320))
+  .force('center', d3.forceCenter(width / 2, height / 2))
+  .force('collision', d3.forceCollide().radius(d => d.r + 8))
+  .force('x', d3.forceX(width / 2).strength(0.06))
+  .force('y', d3.forceY(height / 2).strength(0.06));
+
+const link = svg.append('g').selectAll('line').data(links).enter().append('line')
+  .attr('stroke', dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')
+  .attr('stroke-width', d => 0.5 + d.strength * 1.5);
+
+const nodeG = svg.append('g').selectAll('g').data(nodes).enter().append('g')
+  .style('cursor', 'pointer')
+  .call(d3.drag()
+    .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+    .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+    .on('end', (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })
+  );
+
+nodeG.append('circle')
+  .attr('r', d => d.r)
+  .attr('fill', d => { const c = categories[d.cat]; return dark ? c.darkFill : c.light; })
+  .attr('stroke', d => categories[d.cat].color)
+  .attr('stroke-width', 1.5);
+
+nodeG.each(function(d) {
+  const g = d3.select(this);
+  const lines = d.label.split('\n');
+  const fontSize = d.r < 20 ? 9 : d.r < 24 ? 10 : 11;
+  lines.forEach((line, i) => {
+    const dy = (i - (lines.length - 1) / 2) * (fontSize + 2);
+    g.append('text').attr('text-anchor', 'middle').attr('dy', dy)
+      .attr('dominant-baseline', 'central')
+      .style('font-size', fontSize + 'px').style('font-weight', '500')
+      .style('fill', categories[d.cat].color).style('pointer-events', 'none')
+      .text(line);
+  });
+});
+
+nodeG.on('mouseover', function(e, d) {
+  d3.select(this).select('circle').transition().duration(150).attr('stroke-width', 3);
+  link.transition().duration(150)
+    .attr('stroke', l => (l.source.id === d.id || l.target.id === d.id) ? categories[d.cat].color : (dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'))
+    .attr('stroke-width', l => (l.source.id === d.id || l.target.id === d.id) ? 2 : 0.5);
+  tooltip.innerHTML = '<div class="tt-cat">'+d.cat+'</div><div class="tt-title">'+d.label.replace('\n',' ')+'</div><div class="tt-desc">'+d.desc+'</div>'+(d.url ? '<div class="tt-url">'+d.url+'</div>' : '');
+  tooltip.style.opacity = 1;
+  const tx = d.x + d.r + 12;
+  const ty = d.y - 20;
+  tooltip.style.left = (tx + 270 > width ? d.x - 280 : tx) + 'px';
+  tooltip.style.top = Math.max(8, Math.min(ty, height - 140)) + 'px';
+});
+
+nodeG.on('mouseout', function(e, d) {
+  d3.select(this).select('circle').transition().duration(150).attr('stroke-width', 1.5);
+  link.transition().duration(150)
+    .attr('stroke', dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')
+    .attr('stroke-width', d => 0.5 + d.strength * 1.5);
+  tooltip.style.opacity = 0;
+});
+
+nodeG.on('click', function(e, d) {
+  if (d.url) window.open(d.url, '_blank', 'noopener');
+});
+
+sim.on('tick', () => {
+  nodes.forEach(d => {
+    d.x = Math.max(d.r + 5, Math.min(width - d.r - 5, d.x));
+    d.y = Math.max(d.r + 5, Math.min(height - d.r - 5, d.y));
+  });
+  link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+  nodeG.attr('transform', d => 'translate('+d.x+','+d.y+')');
+});
+</script>
+</body>
+</html>
